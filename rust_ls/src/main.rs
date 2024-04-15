@@ -16,9 +16,6 @@ fn get_files(filename: String) -> Result<Vec<String>, std::io::Error> {
 
 fn basic_print_files(file_names: Vec<String>) {
     for file in file_names {
-        //if file.starts_with(".") {
-        //    continue;
-        //}
         if file.starts_with(".") {
             continue;
         }
