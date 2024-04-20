@@ -9,6 +9,7 @@ use std::path::{Path};
 use std::time::SystemTime;
 
 #[derive(Debug)]
+#[derive(Clone)]
 struct File {
     name: String,
     size: u64,
@@ -48,11 +49,11 @@ fn numeric_to_symbolic(mode: u32) -> String {
     permissions
 }
 
-fn get_files(filename: String, is_a: bool) -> Result<Vec<File>, io::Error> {
+fn get_files(filename: String, is_a: bool, is_r: bool) -> Result<Vec<File>, io::Error> {
     let mut files = Vec::new();
     let mut entries = fs::read_dir(&filename)?;
 
-    if is_a {
+    if is_a && !is_r{
         // If is_a is true, manually add "." and ".." entries
         let mut file = get_file_info(Path::new("./"))?;
         file.name = ".".to_string();
@@ -147,6 +148,22 @@ fn print_files(files: Vec<File>, is_a: bool, is_l: bool) {
     println!();
 }
 
+fn print_recursive_files(files: Vec<File>, is_a: bool, is_l: bool, filepath: String) {
+    println!("{}:", filepath);
+    print_files(files.clone(), is_a, is_l);
+    println!();
+    for file in files {
+        if !is_a && file.name.starts_with(".") {
+            continue;
+        }
+        if file.is_dir {
+            let filepath = format!("{}/{}", filepath, file.name);
+            let new_files = get_files(filepath.clone(), is_a, true).unwrap();
+            print_recursive_files(new_files, is_a, is_l, filepath);
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut filepath = ".".to_string();
@@ -159,6 +176,7 @@ fn main() {
     }
     let mut is_a = false;
     let mut is_l = false;
+    let mut is_r = false;
     for arg in args {
         if arg == "-a" {
             is_a = true;
@@ -166,7 +184,15 @@ fn main() {
         if arg == "-l" {
             is_l = true;
         }
+        if arg == "-R" {
+            is_r = true;
+        }
     }
-    let files = get_files(filepath, is_a).unwrap();
+    if is_r {
+        let files = get_files(filepath.clone(), is_a, true).unwrap();
+        print_recursive_files(files, is_a, is_l, filepath);
+        return;
+    }
+    let files = get_files(filepath, is_a, false).unwrap();
     print_files(files, is_a, is_l);
 }
